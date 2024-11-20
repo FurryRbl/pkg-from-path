@@ -2,6 +2,29 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Parse the returned object
+ *
+ * @param {string} originalPath - The original path to resolve.
+ * @param {string} packagePath - The path to the package.json file.
+ *
+ * @returns {object} The resolved package information.
+ */
+function resolve(originalPath, packagePath) {
+	const result = {};
+
+	const packageJSON = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+
+	// Package Information
+	result.packageName = packageJSON.name;
+	result.packageVersion = packageJSON.version;
+	result.relativePath = path.relative(path.dirname(packagePath), originalPath);
+
+	result.packageJsonPath = packagePath;
+
+	return result;
+}
+
+/**
  * Automatically detects which package a given path belongs to.
  *
  * @param {string} inputPath - The path to resolve.
@@ -9,7 +32,7 @@ import path from 'path';
  * @throws {TypeError} If the input path is not a string.
  * @throws {Error} If the input path is not an absolute path.
  *
- * @returns {string | null} The resolved package path, or null if not found.
+ * @returns {object | null} The resolved package path, or null if not found.
  */
 function resolvePackagePath(inputPath) {
 	// Check if the input type is a string
@@ -32,7 +55,7 @@ function resolvePackagePath(inputPath) {
 	// First check: see if the current path contains a package.json
 	const packagePath = path.join(currentPath, 'package.json');
 	if (fs.existsSync(packagePath) && fs.lstatSync(packagePath).isFile()) {
-		return currentPath;
+		return resolve(inputPath, packagePath);
 	}
 
 	// Recursively search upwards for package.json, until the root directory
@@ -42,7 +65,7 @@ function resolvePackagePath(inputPath) {
 		// Check the current path for package.json each time
 		const packagePath = path.join(currentPath, 'package.json');
 		if (fs.existsSync(packagePath) && fs.lstatSync(packagePath).isFile()) {
-			return packagePath;
+			return resolve(inputPath, packagePath);
 		}
 	}
 

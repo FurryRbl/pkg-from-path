@@ -20,6 +20,16 @@ pnpm add -D pkg-from-path # Pnpm
 ```javascript
 import resolvePackagePath from 'pkg-from-path';
 
-const path = resolvePackagePath('/path/to/some/file.js');
-console.log(path); // returns the path to the package.json file
+const path = resolvePackagePath('/workspace/project/node_modules/@eslint/js/src/configs/eslint-recommended.js');
+
+/**
+ * return value:
+ {
+    "packageName": "@eslint/js",
+    "packageVersion": "9.15.0",
+    "relativePath": "src/configs/eslint-recommended.js",
+    "packageJsonPath": "P/workspace/project/node_modules/@eslint/js/package.json"
+}
+ */
+console.log(JSON.stringify(path));
 ```
