@@ -1,6 +1,5 @@
 {
 	"name": "pkg-from-path",
-	"private": true,
 	"type": "module",
 	"license": "MIT",
 	"version": "1.0.0",
