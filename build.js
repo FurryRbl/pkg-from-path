@@ -3,10 +3,11 @@
 import fs from 'node:fs';
 import chalk from 'chalk';
 import url from 'node:url';
-import swc from '@swc/core';
 import path from 'node:path';
+import { rollup } from 'rollup';
 import * as rimraf from 'rimraf';
 import child_process from 'node:child_process';
+import nodeResolve from '@rollup/plugin-node-resolve';
 
 (async () => {
 	try {
@@ -19,30 +20,28 @@ import child_process from 'node:child_process';
 		fs.mkdirSync(outPath);
 
 		Promise.all([
-			swc
-				.transformFile(filePath, {
-					isModule: true,
-					sourceMaps: false,
-					module: {
-						type: 'commonjs',
-					},
-				})
-				.then(output => {
-					fs.writeFileSync(path.resolve(outPath, 'main.cjs'), output.code, 'utf-8');
-					console.log(chalk.blueBright('cjs build success!'));
-				}),
-			swc
-				.transformFile(filePath, {
-					isModule: true,
-					sourceMaps: false,
-					module: {
-						type: 'es6',
-					},
-				})
-				.then(output => {
-					fs.writeFileSync(path.resolve(outPath, 'main.mjs'), output.code, 'utf-8');
-					console.log(chalk.blueBright('esm build success!'));
-				}),
+			rollup({
+				input: filePath,
+				output: {
+					format: 'cjs',
+					sourcemap: false,
+					file: path.resolve(outPath, 'main.cjs'), // 输出路径
+				},
+				plugins: [nodeResolve()],
+			}).then(async bundle => {
+				await bundle.write({
+					format: 'cjs',
+					sourcemap: false,
+					file: path.resolve(outPath, 'main.cjs'),
+				});
+
+				await bundle.close();
+
+				console.log(chalk.blueBright('cjs build success!'));
+			}),
+			fs.promises.copyFile(filePath, path.resolve(outPath, 'main.mjs')).then(() => {
+				console.log(chalk.blueBright('esm build success!'));
+			}),
 			new Promise((resolve, reject) => {
 				/** @type {import('node:child_process').ChildProcess} */
 				const child = child_process.spawn('node', [
