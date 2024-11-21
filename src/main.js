@@ -2,16 +2,24 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * @typedef {object} Result
+ * @property {string} packageName - Package name
+ * @property {string} packageVersion - Package version
+ * @property {string} relativePath - The file path in the package generated according to the given path and the path where the package is located
+ * @property {string} packageJsonPath - Path to the package.json file
+ */
+
+/**
  * Parse the returned object
- *
  * @param {string} originalPath - The original path to resolve.
  * @param {string} packagePath - The path to the package.json file.
- *
- * @returns {object} The resolved package information.
+ * @returns {Result} The resolved package information.
  */
 function resolve(originalPath, packagePath) {
+	/** @type {Result} */
 	const result = {};
 
+	/** @type {import('type-fest').PackageJson} */
 	const packageJSON = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
 	// Package Information
@@ -26,13 +34,10 @@ function resolve(originalPath, packagePath) {
 
 /**
  * Automatically detects which package a given path belongs to.
- *
  * @param {string} inputPath - The path to resolve.
- *
  * @throws {TypeError} If the input path is not a string.
  * @throws {Error} If the input path is not an absolute path.
- *
- * @returns {object | null} The resolved package path, or null if not found.
+ * @returns {Result | null} The resolved package path, or null if not found.
  */
 function resolvePackagePath(inputPath) {
 	// Check if the input type is a string

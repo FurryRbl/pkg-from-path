@@ -2,9 +2,11 @@
 
 import fs from 'node:fs';
 import chalk from 'chalk';
+import url from 'node:url';
 import swc from '@swc/core';
 import path from 'node:path';
-import { sync as rimrafSync } from 'rimraf';
+import * as rimraf from 'rimraf';
+import child_process from 'node:child_process';
 
 (async () => {
 	try {
@@ -12,7 +14,7 @@ import { sync as rimrafSync } from 'rimraf';
 		const filePath = path.resolve(import.meta.dirname, './src/main.js');
 
 		if (fs.existsSync(outPath)) {
-			rimrafSync(outPath);
+			rimraf.sync(outPath);
 		}
 		fs.mkdirSync(outPath);
 
@@ -26,7 +28,7 @@ import { sync as rimrafSync } from 'rimraf';
 					},
 				})
 				.then(output => {
-					fs.writeFileSync(path.resolve(outPath, 'index.cjs'), output.code, 'utf-8');
+					fs.writeFileSync(path.resolve(outPath, 'main.cjs'), output.code, 'utf-8');
 					console.log(chalk.blueBright('cjs build success!'));
 				}),
 			swc
@@ -38,14 +40,23 @@ import { sync as rimrafSync } from 'rimraf';
 					},
 				})
 				.then(output => {
-					fs.writeFileSync(path.resolve(outPath, 'index.mjs'), output.code, 'utf-8');
+					fs.writeFileSync(path.resolve(outPath, 'main.mjs'), output.code, 'utf-8');
 					console.log(chalk.blueBright('esm build success!'));
 				}),
-			fs.promises
-				.copyFile(path.resolve(filePath, '../main.d.ts'), path.resolve(outPath, 'index.d.ts'))
-				.then(() => {
-					console.log(chalk.blueBright('dts build success!'));
-				}),
+			new Promise((resolve, reject) => {
+				/** @type {import('node:child_process').ChildProcess} */
+				const child = child_process.spawn('node', [
+					url.fileURLToPath(import.meta.resolve('typescript/lib/tsc.js')),
+					'--emitDeclarationOnly',
+				]);
+
+				child.stdout.on('data', data => process.stdout.write(data)); // 标准输出
+				child.stderr.on('data', data => process.stderr.write(data)); // 错误输出
+				child.on('close', code => resolve(code));
+				child.on('error', error => reject(error.message, error.stack));
+			}).then(() => {
+				console.log(chalk.blueBright('dts build success!'));
+			}),
 		]);
 	} catch (error) {
 		console.error(chalk.red(`build failed with error:\n`), error.stack || error);
